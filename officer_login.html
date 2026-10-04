@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Portal - RPL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .app-container { max-width: 480px; margin: 0 auto; background-color: #ffffff; min-height: 100vh; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; flex-direction: column;}
+        .header { background: #1e3a8a; color: white; padding: 2rem 1rem; text-align: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;}
+        .form-input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; outline: none; margin-bottom: 1rem; font-size: 0.95rem;}
+        .btn { width: 100%; padding: 0.75rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; color: white; transition: 0.3s;}
+        .tab-btn { flex: 1; padding: 0.65rem 0.2rem; text-align: center; font-weight: bold; font-size: 0.85rem; cursor: pointer; border-bottom: 3px solid transparent; color: #6b7280;}
+        .tab-btn.active { border-bottom-color: #2563eb; color: #2563eb; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header shadow-md">
+        <i class="fas fa-shield-alt text-4xl mb-2 text-blue-300"></i>
+        <h1 class="text-xl font-bold">Officer Auth Portal</h1>
+        <p class="text-xs text-blue-200 mt-1">Advanced Anti-Fraud KYC</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b">
+        <div class="tab-btn active" id="tab-login" onclick="window.switchTab('login')">लॉगिन</div>
+        <div class="tab-btn" id="tab-register" onclick="window.switchTab('register')">नया रजिस्ट्रेशन</div>
+        <div class="tab-btn" id="tab-status" onclick="window.switchTab('status')">स्टेटस चेक करें</div>
+    </div>
+
+    <div class="p-6">
+        <!-- 1. LOGIN SECTION -->
+        <div id="section-login">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">ऑफिसर लॉगिन</h2>
+            <label class="block text-xs font-bold text-gray-600 mb-1">ऑफिसियल ईमेल</label>
+            <input type="email" id="login-email" class="form-input" placeholder="officer@skillindia.gov.in">
+            
+            <label class="block text-xs font-bold text-gray-600 mb-1">पासवर्ड</label>
+            <input type="password" id="login-pass" class="form-input" placeholder="••••••••">
+            
+            <button onclick="window.loginOfficer()" id="btn-login" class="btn bg-blue-600 hover:bg-blue-700">लॉगिन करें <i class="fas fa-sign-in-alt ml-2"></i></button>
+        </div>
+
+        <!-- 2. REGISTRATION SECTION -->
+        <div id="section-register" class="hidden">
+            <div id="reg-step-1">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">अधिकारी KYC रजिस्ट्रेशन</h2>
+                
+                <div class="bg-blue-50 p-4 rounded border border-blue-200 mb-4">
+                    <p class="text-xs font-bold text-blue-800 mb-3 border-b border-blue-200 pb-2"><i class="fas fa-user-shield"></i> 5-पॉइंट डेटाबेस वेरिफिकेशन</p>
+                    
+                    <label class="block text-xs font-bold text-gray-600 mb-1">पूरा नाम</label>
+                    <input type="text" id="reg-name" class="form-input mb-3" placeholder="डेटाबेस के अनुसार नाम">
+
+                    <label class="block text-xs font-bold text-gray-600 mb-1">पिता का नाम</label>
+                    <input type="text" id="reg-fname" class="form-input mb-3" placeholder="पिता का नाम">
+                    
+                    <label class="block text-xs font-bold text-gray-600 mb-1">जन्म तिथि (DOB)</label>
+                    <input type="date" id="reg-dob" class="form-input mb-3">
+                    
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Employee ID</label>
+                    <input type="text" id="reg-emp-id" class="form-input mb-3" placeholder="e.g. 293090">
+                    
+                    <label class="block text-xs font-bold text-gray-600 mb-1">आधार नंबर</label>
+                    <input type="number" id="reg-aadhaar" class="form-input mb-0" placeholder="12-digit Aadhaar">
+                </div>
+
+                <div class="bg-gray-50 p-3 rounded border border-gray-200 mb-4">
+                    <label class="block text-xs font-bold text-gray-600 mb-1">नया ऑफिसियल ईमेल</label>
+                    <input type="email" id="reg-email" class="form-input mb-2" placeholder="officer@skillindia.gov.in">
+
+                    <label class="block text-xs font-bold text-gray-600 mb-1">नया पासवर्ड</label>
+                    <input type="password" id="reg-pass" class="form-input mb-0" placeholder="••••••••">
+                </div>
+
+                <button onclick="window.verifyKYCAndSendOTP()" id="btn-verify-kyc" class="btn bg-blue-600 hover:bg-blue-700">डेटा वेरीफाई करें और OTP भेजें <i class="fas fa-paper-plane ml-2"></i></button>
+            </div>
+
+            <!-- OTP Form -->
+            <div id="reg-step-2" class="hidden">
+                <div class="text-center mb-6 mt-4">
+                    <i class="fas fa-mobile-alt text-5xl text-green-500 mb-3"></i>
+                    <h2 class="text-xl font-bold text-gray-800">OTP वेरिफिकेशन</h2>
+                    <p class="text-sm text-gray-500 mt-2">आपकी डिटेल्स 100% मैच हो गई हैं!</p>
+                </div>
+
+                <label class="block text-sm font-bold text-gray-700 mb-2 text-center">OTP दर्ज करें (Demo: 1234)</label>
+                <input type="number" id="reg-otp" class="form-input text-center tracking-[0.5em] font-bold text-lg" placeholder="••••">
+
+                <button onclick="window.submitFinalRegistration()" id="btn-submit-reg" class="btn bg-green-600 hover:bg-green-700">रजिस्ट्रेशन पूरा करें <i class="fas fa-check-circle ml-2"></i></button>
+                <button onclick="window.backToRegStep1()" class="btn bg-gray-200 text-gray-700 mt-3 hover:bg-gray-300 text-sm">वापस जाएँ</button>
+            </div>
+        </div>
+
+        <!-- 3. CHECK STATUS SECTION -->
+        <div id="section-status" class="hidden">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">रजिस्ट्रेशन स्टेटस चेक करें</h2>
+            <p class="text-sm text-gray-500 mb-4">सुपर-एडमिन द्वारा अप्रूवल की स्थिति जानने के लिए अपना रजिस्टर्ड ईमेल डालें।</p>
+            
+            <label class="block text-xs font-bold text-gray-600 mb-1">अपना ईमेल दर्ज करें</label>
+            <input type="email" id="track-email" class="form-input" placeholder="officer@skillindia.gov.in">
+            
+            <button onclick="window.checkOfficerStatus()" id="btn-check-status" class="btn bg-purple-600 hover:bg-purple-700 mb-4">स्टेटस खोजें <i class="fas fa-search ml-2"></i></button>
+
+            <!-- Status Result Box -->
+            <div id="status-result-box" class="hidden p-4 rounded-lg border text-center bg-gray-50">
+                <div id="status-icon" class="text-4xl mb-2"></div>
+                <h3 id="status-title" class="font-bold text-lg mb-1">...</h3>
+                <p id="status-desc" class="text-sm text-gray-600">...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { firebaseConfig } from './firebase-config.js'; 
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let pendingRegData = null;
+
+    window.switchTab = function(tab) {
+        document.getElementById('tab-login').classList.remove('active');
+        document.getElementById('tab-register').classList.remove('active');
+        document.getElementById('tab-status').classList.remove('active');
+        
+        document.getElementById('section-login').classList.add('hidden');
+        document.getElementById('section-register').classList.add('hidden');
+        document.getElementById('section-status').classList.add('hidden');
+
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('section-' + tab).classList.remove('hidden');
+
+        document.getElementById('reg-step-1').classList.remove('hidden');
+        document.getElementById('reg-step-2').classList.add('hidden');
+        document.getElementById('status-result-box').classList.add('hidden');
+    }
+
+    window.backToRegStep1 = function() {
+        document.getElementById('reg-step-2').classList.add('hidden');
+        document.getElementById('reg-step-1').classList.remove('hidden');
+    }
+
+    // --- STEP 1: Anti-Fraud KYC ---
+    window.verifyKYCAndSendOTP = async function() {
+        const name = document.getElementById('reg-name').value.trim();
+        const fname = document.getElementById('reg-fname').value.trim();
+        const dob = document.getElementById('reg-dob').value; 
+        const empId = document.getElementById('reg-emp-id').value.trim();
+        const aadhaar = document.getElementById('reg-aadhaar').value.trim();
+        const email = document.getElementById('reg-email').value.toLowerCase().trim();
+        const pass = document.getElementById('reg-pass').value;
+        const btn = document.getElementById('btn-verify-kyc');
+
+        if(!name || !fname || !dob || !empId || !aadhaar || !email || !pass) { 
+            alert("कृपया फॉर्म की सभी फील्ड्स भरें!"); return; 
+        }
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> चेक हो रहा है...';
+        btn.disabled = true;
+
+        try {
+            // 🌟 1. EMAIL DUPLICATE CHECK
+            const officerDocRef = doc(db, "officers_db", email);
+            const officerDocSnap = await getDoc(officerDocRef);
+
+            if (officerDocSnap.exists()) {
+                const existingStatus = officerDocSnap.data().status;
+                if (existingStatus === "Pending" || existingStatus === "Active") {
+                    alert(`❌ यह ईमेल (${email}) पहले से ही '${existingStatus}' स्टेटस के साथ रजिस्टर्ड है!`);
+                    resetBtn(); return;
+                }
+            }
+
+            // 🌟 2. EMPLOYEE ID DUPLICATE CHECK
+            const q = query(collection(db, "officers_db"), where("emp_id", "==", empId));
+            const querySnapshot = await getDocs(q);
+            let isIdAlreadyRegistered = false;
+            let existingIdStatus = "";
+
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.status === "Pending" || data.status === "Active") {
+                    isIdAlreadyRegistered = true;
+                    existingIdStatus = data.status;
+                }
+            });
+
+            if (isIdAlreadyRegistered) {
+                alert(`⚠️ आपका आवेदन पहले से भेजा जा चुका है!\n\nयह Employee ID पहले से ही '${existingIdStatus}' स्टेटस के साथ रजिस्टर्ड है। आप एक ही आईडी से कई अकाउंट नहीं बना सकते।\n\nकृपया 'स्टेटस चेक करें' टैब में जाकर अपनी स्थिति देखें।`);
+                resetBtn(); return;
+            }
+
+            // 🌟 3. REAL EMPLOYEE DATABASE VERIFICATION
+            const empDocRef = doc(db, "employees_db", empId);
+            const empDocSnap = await getDoc(empDocRef);
+
+            if (!empDocSnap.exists()) {
+                alert("❌ एरर: यह Employee ID डेटाबेस में मौजूद नहीं है!");
+                resetBtn(); return;
+            }
+
+            const empData = empDocSnap.data();
+
+            const isNameMatch = (empData['Name'].trim().toLowerCase() === name.toLowerCase());
+            const isFnameMatch = (empData["Father's Name"].trim().toLowerCase() === fname.toLowerCase());
+            const isDobMatch = (empData['DOB'].trim() === dob); 
+            const isAadhaarMatch = (String(empData['Aadhaar No.']).trim() === aadhaar);
+
+            if(!isNameMatch || !isFnameMatch || !isDobMatch || !isAadhaarMatch) {
+                alert("❌ KYC फेल: आपके द्वारा डाली गई डिटेल्स डेटाबेस से मैच नहीं कर रही हैं।");
+                resetBtn(); return;
+            }
+
+            // 🎯 NEW: ऑटोमैटिक तरीके से employees_db से Department उठाना
+            // मान लिया गया है कि आपके employees_db में फील्ड का नाम 'Department' या 'department' है
+            const empDepartment = empData.Department || empData.department || "Unknown Department";
+
+            pendingRegData = {
+                name: empData.Name,
+                emp_id: empId,
+                department: empDepartment, // यहाँ ऑटोमैटिकली सेव हो रहा है
+                email: email,
+                password: pass,
+                role: "Evaluator",
+                status: "Pending" 
+            };
+
+            document.getElementById('reg-step-1').classList.add('hidden');
+            document.getElementById('reg-step-2').classList.remove('hidden');
+
+        } catch(e) { console.error(e); alert("डेटाबेस कनेक्ट एरर!"); }
+
+        function resetBtn() {
+            btn.innerHTML = 'डेटा वेरीफाई करें और OTP भेजें <i class="fas fa-paper-plane ml-2"></i>';
+            btn.disabled = false;
+        }
+    }
+
+    // --- STEP 2: Submit ---
+    window.submitFinalRegistration = async function() {
+        const otp = document.getElementById('reg-otp').value;
+        const btn = document.getElementById('btn-submit-reg');
+
+        if(otp !== "1234") { alert("❌ गलत OTP!"); return; }
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> सबमिट हो रहा है...';
+        btn.disabled = true;
+
+        try {
+            await setDoc(doc(db, "officers_db", pendingRegData.email), pendingRegData);
+            alert("✅ रजिस्ट्रेशन पूरा हुआ!\nस्टेटस चेक करने के लिए 'स्टेटस चेक करें' टैब पर जाएं।");
+            window.switchTab('status');
+        } catch(e) {
+            console.error(e); alert("सबमिट करने में एरर!");
+            btn.innerHTML = 'रजिस्ट्रेशन पूरा करें <i class="fas fa-check-circle ml-2"></i>';
+            btn.disabled = false;
+        }
+    }
+
+    // --- LOGIN ---
+    window.loginOfficer = async function() {
+        const email = document.getElementById('login-email').value.toLowerCase();
+        const pass = document.getElementById('login-pass').value;
+        const btn = document.getElementById('btn-login');
+
+        if(!email || !pass) { alert("ईमेल और पासवर्ड डालें!"); return; }
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> लॉगिन हो रहा है...';
+
+        try {
+            const docRef = doc(db, "officers_db", email);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const officerData = docSnap.data();
+                
+                if (officerData.password !== pass) {
+                    alert("❌ गलत पासवर्ड!");
+                    btn.innerHTML = 'लॉगिन करें <i class="fas fa-sign-in-alt ml-2"></i>';
+                    return;
+                }
+
+                if(officerData.status === "Pending") {
+                    alert("⏳ आपका अकाउंट अभी पेंडिंग है।");
+                    btn.innerHTML = 'लॉगिन करें <i class="fas fa-sign-in-alt ml-2"></i>';
+                    return;
+                } else if(officerData.status === "Rejected") {
+                    alert("🚫 आपका रजिस्ट्रेशन रिजेक्ट कर दिया गया है। कृपया दोबारा रजिस्टर करें।");
+                    btn.innerHTML = 'लॉगिन करें <i class="fas fa-sign-in-alt ml-2"></i>';
+                    return;
+                }
+
+                localStorage.setItem('currentOfficer', JSON.stringify(officerData));
+                window.location.href = "officer_dashboard.html"; 
+            } else {
+                alert("❌ इस ईमेल से कोई अकाउंट मिला नहीं!");
+                btn.innerHTML = 'लॉगिन करें <i class="fas fa-sign-in-alt ml-2"></i>';
+            }
+        } catch(e) { console.error(e); alert("लॉगिन एरर!"); }
+    }
+
+    // --- CHECK STATUS ---
+    window.checkOfficerStatus = async function() {
+        const email = document.getElementById('track-email').value.toLowerCase().trim();
+        const btn = document.getElementById('btn-check-status');
+        const resultBox = document.getElementById('status-result-box');
+        const icon = document.getElementById('status-icon');
+        const title = document.getElementById('status-title');
+        const desc = document.getElementById('status-desc');
+
+        if(!email) { alert("कृपया अपना ईमेल डालें!"); return; }
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        resultBox.classList.add('hidden');
+        resultBox.className = "hidden p-4 rounded-lg border text-center"; 
+
+        try {
+            const docRef = doc(db, "officers_db", email);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const status = docSnap.data().status;
+                resultBox.classList.remove('hidden');
+
+                if (status === "Pending") {
+                    resultBox.classList.add('border-yellow-300', 'bg-yellow-50');
+                    icon.innerHTML = '<i class="fas fa-clock text-yellow-500"></i>';
+                    title.className = "font-bold text-lg mb-1 text-yellow-700";
+                    title.innerText = "एप्लीकेशन Pending है";
+                    desc.innerText = "आपका अकाउंट सुपर-एडमिन के पास अप्रूवल के लिए कतार में है। कृपया प्रतीक्षा करें।";
+                } else if (status === "Active") {
+                    resultBox.classList.add('border-green-300', 'bg-green-50');
+                    icon.innerHTML = '<i class="fas fa-check-circle text-green-500"></i>';
+                    title.className = "font-bold text-lg mb-1 text-green-700";
+                    title.innerText = "अकाउंट Active है!";
+                    desc.innerHTML = "बधाई हो! आपका अकाउंट अप्रूव हो गया है। आप <a href='#' onclick='window.switchTab(\"login\")' class='text-blue-600 underline font-bold'>यहाँ से लॉगिन</a> कर सकते हैं।";
+                } else if (status === "Rejected") {
+                    resultBox.classList.add('border-red-300', 'bg-red-50');
+                    icon.innerHTML = '<i class="fas fa-times-circle text-red-500"></i>';
+                    title.className = "font-bold text-lg mb-1 text-red-700";
+                    title.innerText = "एप्लीकेशन रिजेक्ट हो गई है";
+                    desc.innerText = "आपका रजिस्ट्रेशन सुपर-एडमिन द्वारा रिजेक्ट कर दिया गया है। आप इसी ईमेल से दोबारा नया रजिस्ट्रेशन फॉर्म भर सकते हैं।";
+                }
+            } else {
+                alert("❌ इस ईमेल से कोई रजिस्ट्रेशन नहीं मिला।");
+            }
+        } catch(e) {
+            console.error(e); alert("स्टेटस चेक करने में एरर!");
+        } finally {
+            btn.innerHTML = 'स्टेटस खोजें <i class="fas fa-search ml-2"></i>';
+        }
+    }
+</script>
+
+</body>
+</html>

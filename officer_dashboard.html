@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Dashboard - RPL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .dashboard-container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .stat-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .table-header { background-color: #f8fafc; }
+        .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: bold; }
+        .badge-pending { background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+        .badge-approved { background-color: #d1fae5; color: #059669; border: 1px solid #a7f3d0; }
+        .badge-rejected { background-color: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+        .modal { display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <nav class="bg-blue-900 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-shield-alt text-2xl text-blue-300 mr-3"></i>
+                    <div>
+                        <h1 class="font-bold text-xl leading-tight">Officer Verification Panel</h1>
+                        <p class="text-xs text-blue-300">RPL Advanced KYC System</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-bold" id="display-officer-name">Loading...</p>
+                        <p class="text-xs text-blue-300">
+                            <i class="fas fa-map-marker-alt text-red-400 mr-1"></i><span id="display-region">...</span> | 
+                            <i class="fas fa-tools text-yellow-400 mr-1"></i><span id="display-department">...</span>
+                        </p>
+                    </div>
+                    <button onclick="window.logoutOfficer()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold shadow-md transition-colors">
+                        <i class="fas fa-sign-out-alt mr-1"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Dashboard -->
+    <div class="dashboard-container">
+        
+        <!-- Welcome Message -->
+        <div class="mb-6 flex justify-between items-end">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">Dashboard Overview</h2>
+                <p class="text-sm text-gray-500 mt-1">Showing workers for your specific Region and Department.</p>
+            </div>
+            <button onclick="window.loadDashboardData()" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition">
+                <i class="fas fa-sync-alt mr-1"></i> Refresh Data
+            </button>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="stat-card bg-white rounded-xl p-6 shadow-sm border-l-4 border-yellow-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Pending Verification</p>
+                        <h3 class="text-3xl font-black text-yellow-600" id="count-pending">0</h3>
+                    </div>
+                    <div class="p-3 bg-yellow-50 rounded-lg">
+                        <i class="fas fa-clock text-yellow-500 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Approved Workers</p>
+                        <h3 class="text-3xl font-black text-green-600" id="count-approved">0</h3>
+                    </div>
+                    <div class="p-3 bg-green-50 rounded-lg">
+                        <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card bg-white rounded-xl p-6 shadow-sm border-l-4 border-red-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Rejected Workers</p>
+                        <h3 class="text-3xl font-black text-red-600" id="count-rejected">0</h3>
+                    </div>
+                    <div class="p-3 bg-red-50 rounded-lg">
+                        <i class="fas fa-times-circle text-red-500 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="mb-4 border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button onclick="window.filterTable('Pending')" id="tab-Pending" class="tab-btn border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm">
+                    <i class="fas fa-hourglass-half mr-2"></i>Action Required
+                </button>
+                <button onclick="window.filterTable('Approved')" id="tab-Approved" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    <i class="fas fa-history mr-2"></i>Approved History
+                </button>
+                <button onclick="window.filterTable('Rejected')" id="tab-Rejected" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    <i class="fas fa-ban mr-2"></i>Rejected History
+                </button>
+            </nav>
+        </div>
+
+        <!-- Data Table -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="table-header">
+                        <tr>
+                            <th class="p-4 font-bold text-gray-700 text-sm">Enrollment ID</th>
+                            <th class="p-4 font-bold text-gray-700 text-sm">Worker Name</th>
+                            <th class="p-4 font-bold text-gray-700 text-sm">Experience</th>
+                            <th class="p-4 font-bold text-gray-700 text-sm">Status</th>
+                            <th class="p-4 font-bold text-gray-700 text-sm">Submission Date</th>
+                            <th class="p-4 font-bold text-gray-700 text-sm text-center">Action / View</th>
+                        </tr>
+                    </thead>
+                    <tbody id="worker-table-body" class="divide-y divide-gray-100">
+                        <tr>
+                            <td colspan="6" class="p-8 text-center text-gray-500">
+                                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i><br>Loading data...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div id="view-modal" class="modal">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
+            <div class="flex justify-between items-center p-5 border-b sticky top-0 bg-white z-10">
+                <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-clipboard-list text-blue-600 mr-2"></i>Assessment Details</h3>
+                <button onclick="window.closeModal()" class="text-gray-400 hover:text-red-500 text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="p-6" id="modal-content">
+                <!-- Data will be injected here dynamically -->
+                <div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-gray-400"></i></div>
+            </div>
+
+            <!-- Action Buttons (Only visible for Pending) -->
+            <div id="modal-action-footer" class="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-xl hidden">
+                <!-- Buttons injected dynamically to include score UI -->
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { firebaseConfig } from './firebase-config.js'; 
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentOfficer = null;
+    let officerRegion = "N/A"; 
+    let officerDepartment = "N/A";
+    let allWorkersData = [];
+    let currentFilter = 'Pending';
+
+    window.onload = async function() {
+        const officerStr = localStorage.getItem('currentOfficer');
+        
+        if(!officerStr) {
+            window.location.href = 'index.html'; 
+            return;
+        }
+        
+        try {
+            currentOfficer = JSON.parse(officerStr);
+        } catch(e) {
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        document.getElementById('display-officer-name').innerText = currentOfficer.name || 'Officer';
+        
+        try {
+            if(currentOfficer.email) {
+                const officerRef = doc(db, "officers_db", currentOfficer.email);
+                const officerSnap = await getDoc(officerRef);
+                if(officerSnap.exists()) {
+                    const offData = officerSnap.data();
+                    officerDepartment = offData.department || offData.Department || "N/A";
+                } else {
+                    officerDepartment = "N/A";
+                }
+            }
+        } catch(e) { console.error(e); }
+
+        try {
+            if(currentOfficer.emp_id) {
+                const empRef = doc(db, "employees_db", currentOfficer.emp_id);
+                const empSnap = await getDoc(empRef);
+                if(empSnap.exists()) {
+                    const empData = empSnap.data();
+                    officerRegion = empData.Region || empData.region || "N/A";
+                }
+            }
+        } catch(e) { console.error(e); }
+
+        document.getElementById('display-region').innerText = officerRegion;
+        document.getElementById('display-department').innerText = officerDepartment;
+
+        await window.loadDashboardData();
+    };
+
+    window.logoutOfficer = function() {
+        localStorage.removeItem('currentOfficer');
+        window.location.href = 'index.html'; 
+    };
+
+    window.loadDashboardData = async function() {
+        const tbody = document.getElementById('worker-table-body');
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><br>डेटा लोड हो रहा है...</td></tr>`;
+
+        try {
+            allWorkersData = [];
+            let counts = { Pending: 0, Approved: 0, Rejected: 0 };
+
+            let workersQuery;
+            if(officerDepartment !== "N/A") {
+                workersQuery = query(collection(db, "worker_assessment_db"), where("trade", "==", officerDepartment));
+            } else {
+                workersQuery = collection(db, "worker_assessment_db"); 
+            }
+            
+            const querySnapshot = await getDocs(workersQuery);
+            
+            for (const documentSnap of querySnapshot.docs) {
+                const workerData = documentSnap.data();
+                const workerRegion = workerData.state || workerData.region || "N/A";
+
+                if(workerRegion === officerRegion || officerRegion === "N/A") {
+                    if(workerData.status && workerData.status !== "Task_Assigned" && workerData.status !== "Expired") {
+                        allWorkersData.push(workerData);
+                        if(counts[workerData.status] !== undefined) {
+                            counts[workerData.status]++;
+                        }
+                    }
+                }
+            }
+
+            document.getElementById('count-pending').innerText = counts.Pending;
+            document.getElementById('count-approved').innerText = counts.Approved;
+            document.getElementById('count-rejected').innerText = counts.Rejected;
+
+            window.filterTable(currentFilter);
+
+        } catch (error) {
+            console.error("Dashboard Load Error:", error);
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle mb-2 text-2xl"></i><br>डेटाबेस से कनेक्ट करने में एरर! कृपया कंसोल चेक करें।</td></tr>`;
+        }
+    };
+
+    window.filterTable = function(status) {
+        currentFilter = status;
+        
+        ['Pending', 'Approved', 'Rejected'].forEach(tab => {
+            const btn = document.getElementById('tab-' + tab);
+            if(tab === status) {
+                btn.className = "tab-btn border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm";
+            } else {
+                btn.className = "tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm";
+            }
+        });
+
+        const tbody = document.getElementById('worker-table-body');
+        const filteredData = allWorkersData.filter(w => w.status === status);
+        
+        if(filteredData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400 font-bold bg-gray-50"><i class="fas fa-inbox text-4xl mb-3 block"></i>आपके रीजन (${officerRegion}) और डिपार्टमेंट (${officerDepartment}) के लिए कोई ${status} रिकॉर्ड नहीं मिला।</td></tr>`;
+            return;
+        }
+
+        let html = "";
+        filteredData.forEach(worker => {
+            let badgeClass = status === 'Pending' ? 'badge-pending' : (status === 'Approved' ? 'badge-approved' : 'badge-rejected');
+            
+            let tablePhoto = worker.face_photo_url || 'https://via.placeholder.com/40';
+            if(tablePhoto.includes('drive.google.com')) {
+                const match = tablePhoto.match(/\/d\/(.*?)\//) || tablePhoto.match(/id=([a-zA-Z0-9_-]+)/);
+                if(match && match[1]) tablePhoto = `https://lh3.googleusercontent.com/d/${match[1]}`;
+            }
+
+            html += `
+                <tr class="hover:bg-gray-50 border-b border-gray-100 transition">
+                    <td class="p-4 font-bold text-indigo-700 text-sm">${worker.enrollment_id || 'N/A'}</td>
+                    <td class="p-4">
+                        <div class="flex items-center">
+                            <img src="${tablePhoto}" class="w-8 h-8 rounded-full object-cover border border-gray-300 mr-3">
+                            <span class="font-bold text-gray-800 text-sm">${worker.name || 'Unknown'}</span>
+                        </div>
+                    </td>
+                    <td class="p-4 text-gray-600 text-sm">${worker.experience || 'N/A'}</td>
+                    <td class="p-4"><span class="badge ${badgeClass}">${status}</span></td>
+                    <td class="p-4 text-gray-500 text-xs">${worker.submitted_at || 'Unknown Date'}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="window.viewDetails('${worker.enrollment_id}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded text-xs font-bold border border-indigo-200 transition">
+                            <i class="fas fa-eye mr-1"></i> Review
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    };
+
+    window.viewDetails = function(enrollmentId) {
+        const worker = allWorkersData.find(w => w.enrollment_id === enrollmentId);
+        if(!worker) return;
+
+        const modal = document.getElementById('view-modal');
+        const content = document.getElementById('modal-content');
+        const footer = document.getElementById('modal-action-footer');
+
+        let photoSrc = worker.face_photo_url || 'https://via.placeholder.com/150';
+        if(photoSrc.includes('drive.google.com')) {
+            const match = photoSrc.match(/\/d\/(.*?)\//) || photoSrc.match(/id=([a-zA-Z0-9_-]+)/);
+            if(match && match[1]) {
+                photoSrc = `https://lh3.googleusercontent.com/d/${match[1]}`;
+            }
+        }
+
+        let videosHtml = "";
+        if(worker.video_urls && worker.video_urls.length > 0) {
+            worker.video_urls.forEach((url, index) => {
+                const taskDesc = worker.task_data?.task_parts?.[index] || `Task Video ${index + 1}`;
+                
+                let playableUrl = url;
+                if(url && url.includes('drive.google.com')) {
+                    playableUrl = url.replace('/edit', '/view').replace('/usp=sharing', '');
+                }
+
+                videosHtml += `
+                    <div class="mb-4 p-3 bg-gray-50 rounded-lg border">
+                        <p class="text-sm font-bold text-gray-700 mb-2"><span class="text-blue-600 mr-2">Part ${index+1}:</span>${taskDesc}</p>
+                        <div class="flex items-center gap-3">
+                            <a href="${playableUrl}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition inline-flex items-center">
+                                <i class="fas fa-play-circle mr-2 text-lg"></i> Google Drive में वीडियो ${index+1} देखें
+                            </a>
+                            <span class="text-xs text-gray-500">(क्लिक करके वीडियो चलाएं)</span>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            videosHtml = "<p class='text-red-500 font-bold text-sm'>No videos found for this assessment.</p>";
+        }
+
+        content.innerHTML = `
+            <div class="flex flex-col md:flex-row gap-6 mb-6">
+                <div class="w-full md:w-1/3 text-center">
+                    <img src="${photoSrc}" class="w-32 h-32 rounded-lg object-cover border-4 border-gray-200 mx-auto mb-3 shadow-sm">
+                    <h4 class="font-black text-xl text-gray-800">${worker.name || 'Unknown'}</h4>
+                    <p class="text-sm font-bold text-blue-600">${worker.enrollment_id || 'N/A'}</p>
+                    <div class="mt-4 text-left bg-gray-50 p-3 rounded-lg border text-sm">
+                        <p class="mb-1"><span class="text-gray-500">Trade:</span> <span class="font-bold text-gray-800">${worker.trade || 'N/A'}</span></p>
+                        <p class="mb-1"><span class="text-gray-500">Exp:</span> <span class="font-bold text-gray-800">${worker.experience || 'N/A'}</span></p>
+                        <p class="mb-1"><span class="text-gray-500">Region:</span> <span class="font-bold text-gray-800">${worker.state || worker.region || 'N/A'}</span></p>
+                    </div>
+                </div>
+                
+                <div class="w-full md:w-2/3 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6">
+                    <h4 class="font-bold text-gray-800 mb-3"><i class="fas fa-video text-red-500 mr-2"></i>Assessment Videos</h4>
+                    <div class="max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                        ${videosHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if(worker.status === 'Pending') {
+            footer.classList.remove('hidden');
+            
+            // 🌟 1. स्कोर और ग्रेड UI यहाँ इंजेक्ट किया गया है 🌟
+            footer.innerHTML = `
+                <div class="flex-1 flex gap-4 items-center justify-start border-r border-gray-300 pr-4 mr-2">
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 block mb-1">स्कोर (10 में से):</label>
+                        <input type="number" id="eval-score" min="1" max="10" class="w-20 p-2 border border-gray-300 rounded text-sm outline-none focus:border-blue-500 font-bold" placeholder="e.g. 8">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 block mb-1">ग्रेड:</label>
+                        <select id="eval-grade" class="w-20 p-2 border border-gray-300 rounded text-sm outline-none focus:border-blue-500 font-bold">
+                            <option value="">Select</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="btn-reject" class="px-5 py-2 bg-red-100 text-red-700 hover:bg-red-200 font-bold rounded-lg transition"><i class="fas fa-times mr-2"></i> Reject</button>
+                <button id="btn-approve" class="px-5 py-2 bg-green-600 text-white hover:bg-green-700 font-bold rounded-lg transition shadow-md"><i class="fas fa-check mr-2"></i> Approve & Certify</button>
+            `;
+
+            document.getElementById('btn-approve').onclick = () => { window.updateStatus(worker.enrollment_id, 'Approved'); };
+            document.getElementById('btn-reject').onclick = () => { window.updateStatus(worker.enrollment_id, 'Rejected'); };
+        } else {
+            footer.classList.add('hidden');
+            
+            // अगर पहले से अप्रूव्ड है तो उसका स्कोर और ग्रेड भी दिखाओ
+            let marksHtml = "";
+            if(worker.status === 'Approved' && worker.score) {
+                marksHtml = `<div class="mt-2 bg-white p-2 rounded inline-block shadow-sm text-xs font-bold border border-green-200"><span class="text-gray-500">Score:</span> ${worker.score}/10 <span class="mx-2 text-gray-300">|</span> <span class="text-gray-500">Grade:</span> ${worker.grade}</div>`;
+            }
+
+            content.innerHTML += `
+                <div class="mt-4 p-4 bg-gray-100 rounded-lg text-center border">
+                    <p class="text-sm font-bold text-gray-600">This assessment was already <span class="${worker.status === 'Approved' ? 'text-green-600' : 'text-red-600'}">${worker.status}</span> by ${worker.verified_by_name || 'an officer'}.</p>
+                    ${marksHtml}
+                </div>
+            `;
+        }
+
+        modal.classList.add('active');
+    };
+
+    window.closeModal = function() {
+        document.getElementById('view-modal').classList.remove('active');
+    };
+
+    window.updateStatus = async function(enrollmentId, newStatus) {
+        let score = "";
+        let grade = "";
+
+        // 🌟 2. स्कोर और ग्रेड का वैलिडेशन 🌟
+        if(newStatus === "Approved") {
+            score = document.getElementById('eval-score').value;
+            grade = document.getElementById('eval-grade').value;
+
+            if(!score || !grade) {
+                alert("❌ कृपया अप्रूव करने से पहले वर्कर को स्कोर (10 में से) और ग्रेड दें।");
+                return;
+            }
+        }
+
+        if(!confirm(`क्या आप वाकई इस असेसमेंट को ${newStatus} करना चाहते हैं?`)) return;
+        
+        try {
+            document.getElementById('modal-action-footer').innerHTML = `<p class="text-blue-600 font-bold"><i class="fas fa-spinner fa-spin mr-2"></i>डेटाबेस अपडेट हो रहा है...</p>`;
+            
+            const docRef = doc(db, "worker_assessment_db", enrollmentId);
+            
+            const updateData = {
+                status: newStatus,
+                verified_by_email: currentOfficer.email,
+                verified_by_name: currentOfficer.name,
+                verification_time: new Date().toLocaleString('en-IN')
+            };
+
+            // डेटाबेस में स्कोर और ग्रेड सेव करना
+            if (newStatus === "Approved") {
+                updateData.score = score;
+                updateData.grade = grade;
+            }
+
+            await updateDoc(docRef, updateData);
+
+            alert(`✅ असेसमेंट सफलतापूर्वक ${newStatus} कर दिया गया है!`);
+            window.closeModal();
+            await window.loadDashboardData(); 
+
+        } catch (error) {
+            console.error("Update Error:", error);
+            alert("Error updating status. Please try again.");
+            window.closeModal();
+        }
+    };
+</script>
+</body>
+</html>

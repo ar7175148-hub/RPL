@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill India - Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f0fdf4; font-family: 'Segoe UI', Tahoma, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px;}
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .form-input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; outline: none; margin-bottom: 1rem; background-color: #f9fafb; font-size: 1rem; text-align: center; letter-spacing: 1px;}
+        .form-label { display: block; font-size: 0.85rem; font-weight: bold; color: #374151; margin-bottom: 0.3rem; text-align: center;}
+        .btn-blue { background-color: #1e3a8a; color: white; width: 100%; padding: 0.75rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-blue:hover { background-color: #1e40af; }
+        .btn-green { background-color: #10b981; color: white; padding: 0.75rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s;}
+        .btn-green:hover { background-color: #059669; }
+        .hidden { display: none; }
+        .tab-btn { flex: 1; text-align: center; padding: 0.75rem; font-weight: bold; cursor: pointer; border-bottom: 2px solid transparent; color: #6b7280; }
+        .tab-active { border-bottom: 2px solid #1e3a8a; color: #1e3a8a; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-blue-900"><i class="fas fa-tools mr-2"></i>Skill India</h1>
+            <p class="text-sm text-gray-500 mt-1">सुरक्षित पोर्टल</p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex mb-6 border-b">
+            <div id="tab-login" class="tab-btn tab-active" onclick="window.switchTab('login')">लॉगिन (Login)</div>
+            <div id="tab-register" class="tab-btn" onclick="window.switchTab('register')">ई-केवाईसी (eKYC)</div>
+        </div>
+
+        <!-- ================= 1. LOGIN SECTION ================= -->
+        <div id="section-login">
+            <label class="form-label">अपना रजिस्टर्ड मोबाइल नंबर दर्ज करें</label>
+            <input type="tel" id="loginMobile" class="form-input" placeholder="98765XXXXX" maxlength="10">
+
+            <button onclick="window.doLogin()" class="btn-blue mt-2" id="btnLogin">
+                <i class="fas fa-paper-plane mr-2"></i> OTP प्राप्त करें
+            </button>
+        </div>
+
+        <!-- ================= 2. REGISTRATION SECTION ================= -->
+        <div id="section-register" class="hidden">
+            <p class="text-xs text-gray-600 mb-4 bg-yellow-50 p-3 rounded border-l-4 border-yellow-400 text-center">
+                रजिस्ट्रेशन के लिए अपना आधार नंबर वेरीफाई करें।
+            </p>
+            
+            <label class="form-label">अपना आधार नंबर दर्ज करें</label>
+            <!-- यहाँ placeholder में वही फॉर्मेट दिया है जो आपके डेटाबेस में है -->
+            <input type="text" id="regAadhaar" class="form-input" placeholder="XXXX-XXXX-XXXX" maxlength="14">
+            
+            <button onclick="window.verifyAadhaarAndRegister()" class="btn-green mt-2" id="btnRegister">
+                <i class="fas fa-fingerprint mr-2"></i> वेरीफाई करें
+            </button>
+        </div>
+    </div>
+
+    <!-- FIREBASE INTEGRATION SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { firebaseConfig } from './firebase-config.js'; 
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // UI Tabs Switch Logic
+        window.switchTab = function(tab) {
+            document.getElementById('section-login').classList.add('hidden');
+            document.getElementById('section-register').classList.add('hidden');
+            document.getElementById('tab-login').classList.remove('tab-active');
+            document.getElementById('tab-register').classList.remove('tab-active');
+
+            if(tab === 'login') {
+                document.getElementById('section-login').classList.remove('hidden');
+                document.getElementById('tab-login').classList.add('tab-active');
+            } else {
+                document.getElementById('section-register').classList.remove('hidden');
+                document.getElementById('tab-register').classList.add('tab-active');
+            }
+        }
+
+        // ================= REGISTRATION LOGIC =================
+        window.verifyAadhaarAndRegister = async function() {
+            const aadhaarInput = document.getElementById('regAadhaar').value.trim();
+            if(!aadhaarInput) { alert("कृपया आधार नंबर डालें!"); return; }
+
+            const btn = document.getElementById('btnRegister');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> क्लाउड से वेरीफाई हो रहा है...';
+
+            try {
+                // 1. Firebase के 'uidai_mock_db' से आधार चेक करें
+                const uidaiRef = doc(db, "uidai_mock_db", aadhaarInput);
+                const uidaiSnap = await getDoc(uidaiRef);
+
+                if (!uidaiSnap.exists()) {
+                    alert("❌ यह आधार नंबर रिकॉर्ड में नहीं मिला!");
+                    btn.innerHTML = '<i class="fas fa-fingerprint mr-2"></i> वेरीफाई करें';
+                    return;
+                }
+
+                // आधार मिल गया, अब डेटा निकालें
+                const foundUser = uidaiSnap.data();
+                const linkedMobile = foundUser.mobile_number;
+
+                // 2. चेक करें कि क्या इस मोबाइल से ऐप पर अकाउंट बन चुका है?
+                const userRef = doc(db, "app_users", linkedMobile);
+                const docSnap = await getDoc(userRef);
+
+                if (docSnap.exists()) {
+                    alert(`⚠ इस आधार से जुड़ा मोबाइल नंबर (${linkedMobile}) पहले ही रजिस्टर है। कृपया लॉगिन करें।`);
+                    window.switchTab('login');
+                    btn.innerHTML = '<i class="fas fa-fingerprint mr-2"></i> वेरीफाई करें';
+                    return;
+                }
+
+                // 3. OTP Simulation
+                let otp = prompt(`SERVER: आपके मोबाइल नंबर ${linkedMobile} पर OTP भेजा गया है। (डेमो OTP: 123456)`, "123456");
+                
+                if(otp === "123456") {
+                    // 4. OTP सही है! डेटा Firebase के 'app_users' में सुरक्षित करें
+                    await setDoc(userRef, {
+                        name: foundUser.name,
+                        state: foundUser.state,
+                        mobile_number: linkedMobile,
+                        dob: foundUser.dob,
+                        // role: foundUser.role (अगर आपके डेटा में रोल है तो इसे जोड़ लें)
+                    });
+
+                    alert(`✅ आपका नाम (${foundUser.name}) सफलतापूर्वक वेरीफाई हो गया! अकाउंट बन चुका है।`);
+                    window.switchTab('login');
+                } else {
+                    alert("❌ गलत OTP!");
+                }
+            } catch(e) {
+                alert("❌ Firebase कनेक्ट नहीं हो पा रहा है।");
+                console.error(e);
+            }
+            btn.innerHTML = '<i class="fas fa-fingerprint mr-2"></i> वेरीफाई करें';
+        }
+
+        // ================= LOGIN LOGIC =================
+        window.doLogin = async function() {
+            const mobileInput = document.getElementById('loginMobile').value.trim();
+            if(!mobileInput || mobileInput.length < 10) { alert("कृपया सही मोबाइल नंबर डालें!"); return; }
+
+            const btn = document.getElementById('btnLogin');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> अकाउंट खोज रहे हैं...';
+
+            try {
+                // 1. Firebase के 'app_users' से अकाउंट खोजें
+                const userRef = doc(db, "app_users", mobileInput);
+                const docSnap = await getDoc(userRef);
+
+                if (docSnap.exists()) {
+                    const userData = docSnap.data();
+                    
+                    // 2. OTP Simulation
+                    let otp = prompt(`लॉगिन OTP: ${mobileInput} पर OTP भेजा गया है। (डेमो OTP: 123456)`, "123456");
+                    
+                    if(otp === "123456") {
+                        alert(`✅ वेलकम बैक, ${userData.name}!`);
+                        
+                        // सेशन सेव करें ताकि worker_dashboard.html को पता चले
+                        localStorage.setItem('currentUser', JSON.stringify({
+                            mobile: mobileInput,
+                            name: userData.name,
+                            state: userData.state
+                            // role: userData.role 
+                        }));
+                        
+                        // डैशबोर्ड पर भेजें
+                        window.location.href = "worker_dashboard.html"; 
+                    } else {
+                        alert("❌ OTP गलत है!");
+                    }
+                } else {
+                    alert("❌ यह मोबाइल नंबर रजिस्टर्ड नहीं है। कृपया पहले ई-केवाईसी (eKYC) करें।");
+                }
+            } catch (error) {
+                alert("❌ Firebase कनेक्ट नहीं हो पा रहा है।");
+                console.error(error);
+            }
+            btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> OTP प्राप्त करें';
+        }
+    </script>
+</body>
+</html>

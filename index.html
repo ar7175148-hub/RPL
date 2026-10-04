@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill India RPL - Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f0fdf4; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .app-container { max-width: 480px; margin: 0 auto; background-color: #ffffff; min-height: 100vh; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column;}
+        .header { background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); color: white; padding: 2.5rem 1rem; text-align: center; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);}
+        .role-card { border: 2px solid #e5e7eb; border-radius: 15px; padding: 1.5rem; text-align: center; cursor: pointer; transition: 0.3s; background: white;}
+        .role-card:hover { transform: translateY(-5px); border-color: #3b82f6; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.15);}
+        .role-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/8/80/Skill_India_logo.svg/1200px-Skill_India_logo.svg.png" alt="Skill India" class="h-16 mx-auto mb-4 bg-white p-2 rounded-lg">
+        <h1 class="text-2xl font-bold">RPL Assessment Portal</h1>
+        <p class="text-sm text-blue-100 mt-2">अपना रोल (Role) चुनें और आगे बढ़ें</p>
+    </div>
+
+    <div class="px-6 py-8 flex-1 flex flex-col gap-6">
+        
+        <!-- Public / Worker Card -->
+        <div class="role-card" onclick="window.location.href='worker_login.html'">
+            <i class="fas fa-hard-hat role-icon text-yellow-500"></i>
+            <h2 class="text-xl font-bold text-gray-800">पब्लिक / वर्कर</h2>
+            <p class="text-xs text-gray-500 mt-2">अपना स्किल असेसमेंट (RPL) टेस्ट देने और सर्टिफिकेट प्राप्त करने के लिए यहाँ क्लिक करें।</p>
+            <div class="mt-4 bg-blue-50 text-blue-700 py-2 rounded-lg font-bold text-sm">लॉगिन करें <i class="fas fa-arrow-right ml-1"></i></div>
+        </div>
+
+        <!-- Officer / Evaluator Card -->
+        <div class="role-card" onclick="window.location.href='officer_login.html'">
+            <i class="fas fa-user-tie role-icon text-blue-600"></i>
+            <h2 class="text-xl font-bold text-gray-800">अधिकारी / इवैल्यूएटर</h2>
+            <p class="text-xs text-gray-500 mt-2">वर्कर्स के असेसमेंट वीडियो चेक करने और उन्हें पास/फेल करने के लिए यहाँ क्लिक करें।</p>
+            <div class="mt-4 bg-green-50 text-green-700 py-2 rounded-lg font-bold text-sm">लॉगिन / रजिस्टर <i class="fas fa-arrow-right ml-1"></i></div>
+        </div>
+
+    </div>
+    
+    <div class="p-4 text-center text-xs text-gray-400 font-bold border-t bg-gray-50">
+        &copy; 2026 Skill India - Hackathon Project
+    </div>
+</div>
+
+</body>
+</html>
